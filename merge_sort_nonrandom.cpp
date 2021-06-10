@@ -139,7 +139,7 @@ int main(int argc,char *argv[])
         value_cnt=1;
         while(p[i+value_cnt]==p[i]) ++value_cnt;
         auto it=lower_bound(a.begin(),a.end(),p[i]);
-        if(*it!=p[i]) {  //没有找到
+        if(*it!=p[i]) {  // Value doesn't exist in the array
             current_pos=it-a.begin();
             for(int j=0;j<value_cnt;++j) {
                 split_cnt.push_back(current_pos-(split_r.size()>0?split_r.back():0));
@@ -175,6 +175,8 @@ int main(int argc,char *argv[])
     for(int i=0;i<num_procs;++i) MPI_Allgather(&split_cnt[i],1,MPI_INT,&vec_info[i][0],1,MPI_INT,MPI_COMM_WORLD);
     int total_cnt=0;
     for(const auto& it:vec_info[rank]) total_cnt+=it;
+
+    // show how many items are assigned to this process
     cout<<rank<<": "<<total_cnt<<"\n";
     for(int i=1;i<num_procs;++i){
         for(int j=0;j<num_procs;++j){
@@ -190,8 +192,8 @@ int main(int argc,char *argv[])
     }
     MPI_Waitall(num_procs,req,MPI_STATUSES_IGNORE);
 
-    // 先释放a的内存然后再申请内存
-    vector<int>().swap(a); //释放a数组内存
+    // memory management
+    vector<int>().swap(a); 
     vector<int>().swap(recv);
     vector<int> send(total_cnt);
     ed6=MPI_Wtime();
@@ -202,7 +204,7 @@ int main(int argc,char *argv[])
         if(i+1<num_procs) pr[i]=displ[rank][i+1]-1;
         else pr[i]=total_cnt-1;
     }
-    // merge
+    // Merge K segments
     priority_queue<node> q;
     for(int i=0;i<num_procs;++i){
         if(pl[i]<=pr[i]){
@@ -220,7 +222,8 @@ int main(int argc,char *argv[])
         }
     }
     ed7=MPI_Wtime();
-    // break_point();
+
+    // Gather final answer
     for(int i=0;i<num_procs;++i){
         for(int j=0;j<num_procs;++j) cnt_per_process[i]+=vec_info[i][j];
     }
