@@ -65,7 +65,7 @@ const int x=256;
 const int n=x*1e6;
 // const int n=10;
 
-void break_point() //调试使用函数
+void break_point() //For Debug
 {
     cout<<"here\n";
     MPI_Finalize();
