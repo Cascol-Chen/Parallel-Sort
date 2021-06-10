@@ -1,0 +1,112 @@
+with -n 1
+Sort time: 8.52445s
+Gather seg: 0.315088s
+Merge seg: 0.0997199s
+Merge and Sort: 8.62417s
+Final gather: 0.0750993s
+Parallelize with -n 1: 9.01436
+-----------------------
+with -n 1
+Sort time: 8.2757s
+Gather seg: 0.315901s
+Merge seg: 0.101943s
+Merge and Sort: 8.37764s
+Final gather: 0.075681s
+Parallelize with -n 1: 8.76923
+-----------------------
+with -n 12
+Sort time: 1.02516s
+Gather seg: 0.307647s
+Merge seg: 0.1061s
+Merge and Sort: 1.13126s
+Final gather: 0.136802s
+Parallelize with -n 12: 1.57588
+-----------------------
+with -n 12
+Sort time: 1.02493s
+Gather seg: 0.301627s
+Merge seg: 0.106286s
+Merge and Sort: 1.13122s
+Final gather: 0.136173s
+Parallelize with -n 12: 1.56917
+-----------------------
+with -n 12
+Sort time: 1.11474s
+Gather seg: 0.277901s
+Merge seg: 0.141017s
+Merge and Sort: 1.25575s
+Final gather: 0.212869s
+Parallelize with -n 12: 1.74668
+-----------------------
+with -n 12
+Sort time: 1.06012s
+Gather seg: 0.360814s
+Merge seg: 0.0705623s
+Merge and Sort: 1.13068s
+Final gather: 0.138071s
+Parallelize with -n 12: 1.62974
+-----------------------
+with -n 12
+Sort time: 1.0885s
+Gather seg: 0.287772s
+Merge seg: 0.10691s
+Merge and Sort: 1.19541s
+Final gather: 0.14594s
+Parallelize with -n 12: 1.62929
+-----------------------
+with -n 12
+Sort time: 1.21616s
+Gather seg: 0.270836s
+Merge seg: 0.129452s
+Merge and Sort: 1.34561s
+Final gather: 0.213582s
+Parallelize with -n 12: 1.84036
+-----------------------
+with -n 1
+Sort time: 9.03533s
+Gather seg: 0.38559s
+Merge seg: 0.140717s
+Merge and Sort: 9.17605s
+Final gather: 0.109334s
+Parallelize with -n 1: 9.67098
+-----------------------
+with -n 1
+Sort time: 8.375s
+Gather seg: 0.31251s
+Merge seg: 0.0972077s
+Merge and Sort: 8.47221s
+Final gather: 0.0761617s
+Parallelize with -n 1: 8.86089
+-----------------------
+with -n 12
+Sort time: 1.16067s
+Gather seg: 0.2893s
+Merge seg: 0.119337s
+Merge and Sort: 1.28001s
+Final gather: 0.154785s
+Parallelize with -n 12: 1.72426
+-----------------------
+with -n 2
+Sort time: 4.38536s
+Gather seg: 0.282149s
+Merge seg: 0.0993881s
+Merge and Sort: 4.48475s
+Final gather: 0.0998704s
+Parallelize with -n 2: 4.86679
+-----------------------
+with -n 8
+Sort time: 1.53966s
+Gather seg: 0.303865s
+Merge seg: 0.149006s
+Merge and Sort: 1.68867s
+Final gather: 0.151553s
+Parallelize with -n 8: 2.14413
+-----------------------
+with -n 24
+Sort time: 0.611356s
+Gather seg: 1.05263s
+Merge seg: 0.0941715s
+Merge and Sort: 0.705527s
+Final gather: 0.346646s
+Parallelize with -n 24: 2.42163
+-----------------------

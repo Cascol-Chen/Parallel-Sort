@@ -58,7 +58,6 @@ This is parallel merge_sort, the algorithm is as follow
 
 #include<bits/stdc++.h>
 #include<mpi.h>
-#define max_thread 12
 using namespace std;
 
 const int x=256;
@@ -123,7 +122,7 @@ int main(int argc,char *argv[])
     sort(a.begin(),a.end());
     ed2=MPI_Wtime();
 
-    // find how to split the block so as to make them have similar size
+    // find how to split the array so as to make blocks with similar size
     int per_block_size=sz/num_procs; p.resize(num_procs-1);
     for(int i=per_block_size,j=0;j<num_procs-1;i+=per_block_size,++j) p[j]=a[i];
 
@@ -257,36 +256,4 @@ int main(int argc,char *argv[])
 }
 /*
 g++ -o .\merge_sort_nonrandom.exe .\merge_sort_nonrandom.cpp -l msmpi -L "C:/Program Files (x86)/Microsoft SDKs/MPI/Lib/x64" -I "C:\Program Files (x86)\Microsoft SDKs\MPI\Include"
-*/
-
-/*
-1
-Sort time: 5.81909s
-Merge seg: 2.81987s
-Merge and Sort: 8.63896s
-
-2
-Sort time: 2.8936s
-Merge seg: 2.00338s
-Merge and Sort: 4.89699s
-
-4
-Sort time: 1.65492s
-Merge seg: 1.4322s
-Merge and Sort: 3.08712s
-
-6
-Sort time: 1.16097s
-Merge seg: 1.07781s
-Merge and Sort: 2.23877s
-
-8
-Sort time: 1.01886s
-Merge seg: 1.1054s
-Merge and Sort: 2.12425s
-
-12
-Sort time: 0.810835s
-Merge seg: 1.07088s
-Merge and Sort: 1.88171s
 */
