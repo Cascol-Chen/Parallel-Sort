@@ -9,7 +9,7 @@ This is parallel merge_sort, the algorithm is as follow
     7. gather the final answer
 */
 
-#if 1
+#if 0
 #pragma GCC optimize(1)
 #pragma GCC optimize(2)
 #pragma GCC optimize(3)
@@ -127,7 +127,7 @@ int main(int argc,char *argv[])
     ed2=MPI_Wtime();
 
     // find how to split the array so as to make blocks with similar size
-    int per_block_size=sz/num_procs; p.resize(num_procs-1);
+    const int per_block_size=sz/num_procs; p.resize(num_procs-1);
     for(int i=per_block_size,j=0;j<num_procs-1;i+=per_block_size,++j) p[j]=a[i];
 
     MPI_Allgather(&p[0],num_procs-1,MPI_INT,&recv[0],num_procs-1,MPI_INT,MPI_COMM_WORLD);
@@ -231,10 +231,10 @@ int main(int argc,char *argv[])
         for(int j=0;j<num_procs;++j) cnt_per_process[i]+=vec_info[i][j];
     }
 
+    displ_per_process
     for(int i=1;i<num_procs;++i) displ_per_process[i]=displ_per_process[i-1]+cnt_per_process[i-1];
     MPI_Gatherv(&recv_seg[0],recv_seg.size(),MPI_INT,&ans[0],&cnt_per_process[0],&displ_per_process[0],MPI_INT,0,MPI_COMM_WORLD);
     ed8=MPI_Wtime();
-
     if(rank==0){
         ced=MPI_Wtime();
         // for(int i=0;i<1100;++i) cout<<ans[i]<<" "
