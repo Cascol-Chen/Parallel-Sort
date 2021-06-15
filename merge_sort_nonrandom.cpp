@@ -83,11 +83,12 @@ int main(int argc,char *argv[])
     MPI_Status status;
     vector<int> a,recv,p,split_r,split_cnt;
     // vector<vector<int>> vec;
-    double cst,ced,ed2,ed3,ed4,ed5,ed6,ed7,ed8,ed9,ed10;
+    double cst,ced,fed,ed,ed2,ed3,ed4,ed5,ed6,ed7,ed8,ed9,ed10;
     MPI_Init(&argc,&argv);
     MPI_Comm_rank(MPI_COMM_WORLD,&rank);
     MPI_Comm_size(MPI_COMM_WORLD,&num_procs);
 
+    cst=MPI_Wtime();
     const int number_per_process=n/num_procs;
     int sz=number_per_process;
     string file_name=to_string(x)+"M.txt";
@@ -108,21 +109,21 @@ int main(int argc,char *argv[])
         MPI_File_read_at_all(fh,rank*number_per_process*sizeof(int),&a[0],number_per_process,MPI_INT,&status);
     }
     MPI_File_close(&fh);
-
+    fed=MPI_Wtime();
     // allocate all the required memory initially
     split_r.reserve(num_procs);split_cnt.reserve(num_procs);
     recv.resize(num_procs*(num_procs-1));
     vector<int> ans;
     int cnt_per_process[num_procs],displ_per_process[num_procs],vec_info[num_procs][num_procs],displ[num_procs][num_procs];
     memset(cnt_per_process,0,sizeof(cnt_per_process));
-    memset(displ_per_process,0,sizeof(displ_per_process));
-    memset(vec_info,0,sizeof(vec_info));
+    // memset(displ_per_process,0,sizeof(displ_per_process));
+    // memset(vec_info,0,sizeof(vec_info));
     memset(displ,0,sizeof(displ));
     
     if(rank==0) ans.resize(n);
     
-    cst=MPI_Wtime();
     // sort the block assigned
+    ed=MPI_Wtime();
     sort(a.begin(),a.end());
     ed2=MPI_Wtime();
 
@@ -155,12 +156,10 @@ int main(int argc,char *argv[])
             int per_num;
             const int total_number=it2-a.begin()-pre_r;
             if(pre_r+total_number/(value_cnt+1)<it-a.begin()){
-            // if(true){
                 per_num=(it2-it)/(value_cnt+1);
                 current_pos=it-a.begin()+1+per_num;
             }
             else{
-                // assert(false);
                 per_num=total_number/(value_cnt+1);
                 current_pos=pre_r+per_num+1;
             }
@@ -231,7 +230,7 @@ int main(int argc,char *argv[])
         for(int j=0;j<num_procs;++j) cnt_per_process[i]+=vec_info[i][j];
     }
 
-    displ_per_process
+    displ_per_process[0]=0;
     for(int i=1;i<num_procs;++i) displ_per_process[i]=displ_per_process[i-1]+cnt_per_process[i-1];
     MPI_Gatherv(&recv_seg[0],recv_seg.size(),MPI_INT,&ans[0],&cnt_per_process[0],&displ_per_process[0],MPI_INT,0,MPI_COMM_WORLD);
     ed8=MPI_Wtime();
@@ -239,7 +238,8 @@ int main(int argc,char *argv[])
         ced=MPI_Wtime();
         // for(int i=0;i<1100;++i) cout<<ans[i]<<" "
         fstream cou;cou.open("record.txt",ios::app|ios::out);
-        cout<<"Sort time: "<<ed2-cst<<"s\n";
+        cout<<"Read time: "<<fed-cst<<"\n";
+        cout<<"Sort time: "<<ed2-ed<<"s\n";
         // cout<<"Get split value: "<<ed4-ed3<<"s\n";
         // cout<<"Get seg: "<<ed5-ed4<<"s\n";
         cout<<"Gather seg: "<<ed6-ed5<<"s\n";
@@ -249,7 +249,8 @@ int main(int argc,char *argv[])
         cout<<"Parallelize with -n "<<num_procs<<": "<<ced-cst<<"\n";
 
         cou<<"with -n "<<num_procs<<"\n";
-        cou<<"Sort time: "<<ed2-cst<<"s\n";
+        cou<<"Sort time: "<<ed2-ed<<"s\n";
+        cou<<"Read time: "<<fed-cst<<"s\n";
         cou<<"Gather seg: "<<ed6-ed5<<"s\n";
         cou<<"Merge seg: "<<ed7-ed6<<"s\n";
         cou<<"Merge and Sort: "<<ed7-ed6+ed2-cst<<"s\n";
