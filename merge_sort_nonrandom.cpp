@@ -60,7 +60,7 @@ This is parallel merge_sort, the algorithm is as follow
 #include<mpi.h>
 using namespace std;
 
-const int x=256;
+const int x=128;
 const int n=x*1e6;
 // const int n=10;
 
@@ -81,8 +81,8 @@ int main(int argc,char *argv[])
     int num_procs,rank;
     MPI_File fh;
     MPI_Status status;
-    vector<int> a,vec_cnt,recv,p,split_r,split_cnt;
-    vector<vector<int>> vec,vec_info,displ;
+    vector<int> a,recv,p,split_r,split_cnt;
+    // vector<vector<int>> vec;
     double cst,ced,ed2,ed3,ed4,ed5,ed6,ed7,ed8,ed9,ed10;
     MPI_Init(&argc,&argv);
     MPI_Comm_rank(MPI_COMM_WORLD,&rank);
@@ -112,9 +112,13 @@ int main(int argc,char *argv[])
     // allocate all the required memory initially
     split_r.reserve(num_procs);split_cnt.reserve(num_procs);
     recv.resize(num_procs*(num_procs-1));
-    vec_info=vector<vector<int>>(num_procs,vector<int>(num_procs));
-    displ=vector<vector<int>>(num_procs,vector<int>(num_procs));
-    vector<int> cnt_per_process(num_procs),displ_per_process(num_procs),ans;
+    vector<int> ans;
+    int cnt_per_process[num_procs],displ_per_process[num_procs],vec_info[num_procs][num_procs],displ[num_procs][num_procs];
+    memset(cnt_per_process,0,sizeof(cnt_per_process));
+    memset(displ_per_process,0,sizeof(displ_per_process));
+    memset(vec_info,0,sizeof(vec_info));
+    memset(displ,0,sizeof(displ));
+    
     if(rank==0) ans.resize(n);
     
     cst=MPI_Wtime();
@@ -137,7 +141,8 @@ int main(int argc,char *argv[])
     {
         value_cnt=1;
         while(p[i+value_cnt]==p[i]) ++value_cnt;
-        auto it=lower_bound(a.begin(),a.end(),p[i]);
+        const int pre_r=split_r.size()?split_r.back():0;
+        auto it=lower_bound(a.begin()+pre_r,a.end(),p[i]);
         if(*it!=p[i]) {  // Value doesn't exist in the array
             current_pos=it-a.begin();
             for(int j=0;j<value_cnt;++j) {
@@ -148,7 +153,6 @@ int main(int argc,char *argv[])
         else{
             auto it2=upper_bound(a.begin(),a.end(),p[i]);
             int per_num;
-            const int pre_r=split_r.size()?split_r.back():0;
             const int total_number=it2-a.begin()-pre_r;
             if(pre_r+total_number/(value_cnt+1)<it-a.begin()){
             // if(true){
@@ -213,7 +217,7 @@ int main(int argc,char *argv[])
     int idx=0;
     while(!q.empty())
     {
-        auto tmp=q.top();q.pop();
+        const auto tmp=q.top();q.pop();
         send[idx++]=tmp.v;
         while(pl[tmp.id]<=pr[tmp.id]&&(q.empty()||q.top().v>=recv_seg[pl[tmp.id]]) ) send[idx++]=recv_seg[pl[tmp.id]++]; 
         if(pl[tmp.id]<=pr[tmp.id]){
@@ -226,6 +230,7 @@ int main(int argc,char *argv[])
     for(int i=0;i<num_procs;++i){
         for(int j=0;j<num_procs;++j) cnt_per_process[i]+=vec_info[i][j];
     }
+
     for(int i=1;i<num_procs;++i) displ_per_process[i]=displ_per_process[i-1]+cnt_per_process[i-1];
     MPI_Gatherv(&recv_seg[0],recv_seg.size(),MPI_INT,&ans[0],&cnt_per_process[0],&displ_per_process[0],MPI_INT,0,MPI_COMM_WORLD);
     ed8=MPI_Wtime();
