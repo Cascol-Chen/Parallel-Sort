@@ -116,12 +116,7 @@ int main(int argc,char *argv[])
     vector<int> ans;
     int cnt_per_process[num_procs],displ_per_process[num_procs],vec_info[num_procs][num_procs],displ[num_procs][num_procs];
     memset(cnt_per_process,0,sizeof(cnt_per_process));
-    // memset(displ_per_process,0,sizeof(displ_per_process));
-    // memset(vec_info,0,sizeof(vec_info));
     memset(displ,0,sizeof(displ));
-    
-    if(rank==0) ans.resize(n);
-    
     // sort the block assigned
     ed=MPI_Wtime();
     sort(a.begin(),a.end());
@@ -137,7 +132,6 @@ int main(int argc,char *argv[])
     ed4=MPI_Wtime();
 
     int current_pos=0, value_cnt=0; // [l,r)
-
     for(int i=0,len=p.size();i<len;i+=value_cnt)
     {
         value_cnt=1;
@@ -185,7 +179,7 @@ int main(int argc,char *argv[])
             displ[j][i]=displ[j][i-1]+vec_info[j][i-1];
         }
     }
-    vector<int> recv_seg(total_cnt);
+    vector<int> recv_seg;recv_seg.reserve(total_cnt);
     MPI_Request req[num_procs];
     int l=0;
     for(int i=0;i<num_procs;++i){
@@ -197,6 +191,7 @@ int main(int argc,char *argv[])
     // memory management
     vector<int>().swap(a); 
     vector<int>().swap(recv);
+    // MPI_Barrier(MPI_COMM_WORLD);
     vector<int> send(total_cnt);
     ed6=MPI_Wtime();
     
@@ -232,7 +227,10 @@ int main(int argc,char *argv[])
 
     displ_per_process[0]=0;
     for(int i=1;i<num_procs;++i) displ_per_process[i]=displ_per_process[i-1]+cnt_per_process[i-1];
-    MPI_Gatherv(&recv_seg[0],recv_seg.size(),MPI_INT,&ans[0],&cnt_per_process[0],&displ_per_process[0],MPI_INT,0,MPI_COMM_WORLD);
+    vector<int>().swap(recv_seg);
+    // MPI_Barrier(MPI_COMM_WORLD);
+    if(rank==0) ans.reserve(n);
+    MPI_Gatherv(&send[0],send.size(),MPI_INT,&ans[0],&cnt_per_process[0],&displ_per_process[0],MPI_INT,0,MPI_COMM_WORLD);
     ed8=MPI_Wtime();
     if(rank==0){
         ced=MPI_Wtime();
@@ -244,7 +242,7 @@ int main(int argc,char *argv[])
         // cout<<"Get seg: "<<ed5-ed4<<"s\n";
         cout<<"Gather seg: "<<ed6-ed5<<"s\n";
         cout<<"Merge seg: "<<ed7-ed6<<"s\n";
-        cout<<"Merge and Sort: "<<ed7-ed6+ed2-cst<<"s\n";
+        cout<<"Merge and Sort: "<<ed7-ed6+ed2-ed<<"s\n";
         cout<<"Final gather: "<<ed8-ed7<<"s\n";
         cout<<"Parallelize with -n "<<num_procs<<": "<<ced-cst<<"\n";
 
