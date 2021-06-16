@@ -9,7 +9,7 @@ This is parallel merge_sort, the algorithm is as follow
     7. gather the final answer
 */
 
-#if 0
+#if 1
 #pragma GCC optimize(1)
 #pragma GCC optimize(2)
 #pragma GCC optimize(3)
@@ -76,6 +76,38 @@ struct node{
         return v>x.v;
     }
 };
+const int mask=0xffff,range=1<<16;
+inline void radix_sort(vector<int> & a,bool f)
+{
+    double st,ed;
+    st=MPI_Wtime();
+    int lb[range],ub[range];
+    memset(lb,0,sizeof(lb));
+    memset(ub,0,sizeof(ub));
+    for(const auto &it:a) lb[it&mask]++,ub[it>>16]++;
+    ed=MPI_Wtime();
+    if(f)cout<<ed-st<<"s\n";
+    st=MPI_Wtime();
+    for(int i=1;i<range;++i) lb[i]+=lb[i-1];
+    vector<int> b(a.size());
+    // for(auto &it:b) it=1;
+    for(const auto& it:a){
+        const int tmp=it&mask;
+        b[lb[tmp]-1]=it;
+        lb[tmp]--;
+    }
+    ed=MPI_Wtime();
+    if(f)cout<<ed-st<<"s\n";
+    st=MPI_Wtime();
+    lb[0]=0;
+    for(int i=1;i<range;++i) lb[i]=lb[i-1]+ub[i-1];
+    for(const auto &it:b){
+        const int tmp=it>>16;
+        a[lb[tmp]++]=it;
+    }
+    ed=MPI_Wtime();
+    if(f)cout<<ed-st<<"s\n";
+}
 int main(int argc,char *argv[])
 {
     int num_procs,rank;
@@ -119,7 +151,8 @@ int main(int argc,char *argv[])
     memset(displ,0,sizeof(displ));
     // sort the block assigned
     ed=MPI_Wtime();
-    sort(a.begin(),a.end());
+    radix_sort(a,rank==0);
+    // sort(a.begin(),a.end());
     ed2=MPI_Wtime();
 
     // find how to split the array so as to make blocks with similar size
@@ -173,7 +206,7 @@ int main(int argc,char *argv[])
     for(const auto& it:vec_info[rank]) total_cnt+=it;
 
     // show how many items are assigned to this process
-    cout<<rank<<": "<<total_cnt<<"\n";
+    // cout<<rank<<": "<<total_cnt<<"\n";
     for(int i=1;i<num_procs;++i){
         for(int j=0;j<num_procs;++j){
             displ[j][i]=displ[j][i-1]+vec_info[j][i-1];
@@ -191,7 +224,6 @@ int main(int argc,char *argv[])
     // memory management
     vector<int>().swap(a); 
     vector<int>().swap(recv);
-    // MPI_Barrier(MPI_COMM_WORLD);
     vector<int> send(total_cnt);
     ed6=MPI_Wtime();
     
@@ -228,13 +260,12 @@ int main(int argc,char *argv[])
     displ_per_process[0]=0;
     for(int i=1;i<num_procs;++i) displ_per_process[i]=displ_per_process[i-1]+cnt_per_process[i-1];
     vector<int>().swap(recv_seg);
-    // MPI_Barrier(MPI_COMM_WORLD);
     if(rank==0) ans.reserve(n);
     MPI_Gatherv(&send[0],send.size(),MPI_INT,&ans[0],&cnt_per_process[0],&displ_per_process[0],MPI_INT,0,MPI_COMM_WORLD);
     ed8=MPI_Wtime();
     if(rank==0){
         ced=MPI_Wtime();
-        // for(int i=0;i<1100;++i) cout<<ans[i]<<" "
+        // for(int i=0;i<n;++i) cout<<ans[i]<<" ";cout<<"\n";
         fstream cou;cou.open("record.txt",ios::app|ios::out);
         cout<<"Read time: "<<fed-cst<<"\n";
         cout<<"Sort time: "<<ed2-ed<<"s\n";
