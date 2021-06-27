@@ -60,10 +60,6 @@ This is parallel merge_sort, the algorithm is as follow
 #include<mpi.h>
 using namespace std;
 
-const int x=128;
-const int n=x*1e6;
-// const int n=10;
-
 void break_point() //For Debug
 {
     cout<<"here\n";
@@ -77,20 +73,18 @@ struct node{
     }
 };
 const int mask=0xffff,range=1<<16;
+// 写内存连续，读内存跳跃（优化不大）
 inline void radix_sort(vector<int> & a,bool f)
 {
-    double st,ed;
-    st=MPI_Wtime();
+    vector<int> b(a.size());
+    memcpy(&a[0],&b[0],sizeof(int)*a.size()); // 这句话是关键 优化很大 与缓存有关
     int lb[range],ub[range];
     memset(lb,0,sizeof(lb));
     memset(ub,0,sizeof(ub));
     for(const auto &it:a) lb[it&mask]++,ub[it>>16]++;
-    ed=MPI_Wtime();
-    if(f)cout<<ed-st<<"s\n";
-    st=MPI_Wtime();
     for(int i=1;i<range;++i) lb[i]+=lb[i-1];
-    vector<int> b(a.size());
-    // for(auto &it:b) it=1;
+    double st,ed;
+    st=MPI_Wtime();
     for(const auto& it:a){
         const int tmp=it&mask;
         b[lb[tmp]-1]=it;
@@ -98,15 +92,12 @@ inline void radix_sort(vector<int> & a,bool f)
     }
     ed=MPI_Wtime();
     if(f)cout<<ed-st<<"s\n";
-    st=MPI_Wtime();
     lb[0]=0;
     for(int i=1;i<range;++i) lb[i]=lb[i-1]+ub[i-1];
     for(const auto &it:b){
         const int tmp=it>>16;
         a[lb[tmp]++]=it;
     }
-    ed=MPI_Wtime();
-    if(f)cout<<ed-st<<"s\n";
 }
 int main(int argc,char *argv[])
 {
@@ -121,16 +112,21 @@ int main(int argc,char *argv[])
     MPI_Comm_size(MPI_COMM_WORLD,&num_procs);
 
     cst=MPI_Wtime();
-    const int number_per_process=n/num_procs;
-    int sz=number_per_process;
-    string file_name=to_string(x)+"M.txt";
-    // file_name="test.txt";
-    
+
+    string file_name(argv[1]);
     // Read in File
+    cst=MPI_Wtime();
     if(MPI_File_open(MPI_COMM_WORLD,file_name.c_str(),MPI_MODE_RDONLY,MPI_INFO_NULL,&fh)!=MPI_SUCCESS){
         cout<<"there is an error opening data\n";
         break_point();
     }
+
+    MPI_Offset ofs;
+    MPI_File_get_size(fh,&ofs);
+    const int n=ofs/sizeof(int);
+    const int number_per_process=n/num_procs;
+    int sz=number_per_process;
+
     if(rank==num_procs-1) {
         sz=number_per_process+(n-number_per_process*num_procs);
         a.resize(sz);
@@ -151,8 +147,8 @@ int main(int argc,char *argv[])
     memset(displ,0,sizeof(displ));
     // sort the block assigned
     ed=MPI_Wtime();
-    radix_sort(a,rank==0);
-    // sort(a.begin(),a.end());
+    // radix_sort(a,rank==0);
+    sort(a.begin(),a.end());
     ed2=MPI_Wtime();
 
     // find how to split the array so as to make blocks with similar size
@@ -278,8 +274,8 @@ int main(int argc,char *argv[])
         cout<<"Parallelize with -n "<<num_procs<<": "<<ced-cst<<"\n";
 
         cou<<"with -n "<<num_procs<<"\n";
-        cou<<"Sort time: "<<ed2-ed<<"s\n";
         cou<<"Read time: "<<fed-cst<<"s\n";
+        cou<<"Sort time: "<<ed2-ed<<"s\n";
         cou<<"Gather seg: "<<ed6-ed5<<"s\n";
         cou<<"Merge seg: "<<ed7-ed6<<"s\n";
         cou<<"Merge and Sort: "<<ed7-ed6+ed2-cst<<"s\n";
