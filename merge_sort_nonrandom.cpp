@@ -91,7 +91,7 @@ inline void radix_sort(vector<int> & a,bool f)
         lb[tmp]--;
     }
     ed=MPI_Wtime();
-    if(f)cout<<ed-st<<"s\n";
+    // if(f)cout<<ed-st<<"s\n";
     lb[0]=0;
     for(int i=1;i<range;++i) lb[i]=lb[i-1]+ub[i-1];
     for(const auto &it:b){
@@ -104,8 +104,7 @@ int main(int argc,char *argv[])
     int num_procs,rank;
     MPI_File fh;
     MPI_Status status;
-    vector<int> a,recv,p,split_r,split_cnt;
-    // vector<vector<int>> vec;
+    vector<int> recv,p,split_r,split_cnt;
     double cst,ced,fed,ed,ed2,ed3,ed4,ed5,ed6,ed7,ed8,ed9,ed10;
     MPI_Init(&argc,&argv);
     MPI_Comm_rank(MPI_COMM_WORLD,&rank);
@@ -114,6 +113,7 @@ int main(int argc,char *argv[])
     cst=MPI_Wtime();
 
     string file_name(argv[1]);
+    // file_name="test.txt";
     // Read in File
     cst=MPI_Wtime();
     if(MPI_File_open(MPI_COMM_WORLD,file_name.c_str(),MPI_MODE_RDONLY,MPI_INFO_NULL,&fh)!=MPI_SUCCESS){
@@ -126,29 +126,29 @@ int main(int argc,char *argv[])
     const int n=ofs/sizeof(int);
     const int number_per_process=n/num_procs;
     int sz=number_per_process;
-
+    int *a;
     if(rank==num_procs-1) {
         sz=number_per_process+(n-number_per_process*num_procs);
-        a.resize(sz);
-        MPI_File_read_at_all(fh,rank*number_per_process*sizeof(int),&a[0],sz,MPI_INT,&status);
+        a=new int[sz];
+        MPI_File_read_at(fh,rank*number_per_process*sizeof(int),&a[0],sz,MPI_INT,&status);
     }
     else{
-        a.resize(number_per_process);
-        MPI_File_read_at_all(fh,rank*number_per_process*sizeof(int),&a[0],number_per_process,MPI_INT,&status);
+        sz=number_per_process;
+        a=new int[number_per_process];
+        MPI_File_read_at(fh,rank*number_per_process*sizeof(int),&a[0],number_per_process,MPI_INT,&status);
     }
     MPI_File_close(&fh);
     fed=MPI_Wtime();
     // allocate all the required memory initially
     split_r.reserve(num_procs);split_cnt.reserve(num_procs);
     recv.resize(num_procs*(num_procs-1));
-    vector<int> ans;
     int cnt_per_process[num_procs],displ_per_process[num_procs],vec_info[num_procs][num_procs],displ[num_procs][num_procs];
     memset(cnt_per_process,0,sizeof(cnt_per_process));
     memset(displ,0,sizeof(displ));
     // sort the block assigned
     ed=MPI_Wtime();
     // radix_sort(a,rank==0);
-    sort(a.begin(),a.end());
+    sort(a,a+sz);
     ed2=MPI_Wtime();
 
     // find how to split the array so as to make blocks with similar size
@@ -166,21 +166,21 @@ int main(int argc,char *argv[])
         value_cnt=1;
         while(p[i+value_cnt]==p[i]) ++value_cnt;
         const int pre_r=split_r.size()?split_r.back():0;
-        auto it=lower_bound(a.begin()+pre_r,a.end(),p[i]);
+        auto it=lower_bound(a+pre_r,a+sz,p[i]);
         if(*it!=p[i]) {  // Value doesn't exist in the array
-            current_pos=it-a.begin();
+            current_pos=it-a;
             for(int j=0;j<value_cnt;++j) {
                 split_cnt.push_back(current_pos-(split_r.size()>0?split_r.back():0));
                 split_r.push_back(current_pos);
             }
         }
         else{
-            auto it2=upper_bound(a.begin(),a.end(),p[i]);
+            auto it2=upper_bound(a,a+sz,p[i]);
             int per_num;
-            const int total_number=it2-a.begin()-pre_r;
-            if(pre_r+total_number/(value_cnt+1)<it-a.begin()){
+            const int total_number=it2-a-pre_r;
+            if(pre_r+total_number/(value_cnt+1)<it-a){
                 per_num=(it2-it)/(value_cnt+1);
-                current_pos=it-a.begin()+1+per_num;
+                current_pos=it-a+1+per_num;
             }
             else{
                 per_num=total_number/(value_cnt+1);
@@ -208,7 +208,7 @@ int main(int argc,char *argv[])
             displ[j][i]=displ[j][i-1]+vec_info[j][i-1];
         }
     }
-    vector<int> recv_seg;recv_seg.reserve(total_cnt);
+    int *recv_seg=new int[total_cnt];
     MPI_Request req[num_procs];
     int l=0;
     for(int i=0;i<num_procs;++i){
@@ -218,16 +218,14 @@ int main(int argc,char *argv[])
     MPI_Waitall(num_procs,req,MPI_STATUSES_IGNORE);
 
     // memory management
-    vector<int>().swap(a); 
-    vector<int>().swap(recv);
-    vector<int> send(total_cnt);
+    delete[] a; 
+    int *send=new int[total_cnt];
     ed6=MPI_Wtime();
     
     int pl[num_procs],pr[num_procs];
     for(int i=0;i<num_procs;++i){
         pl[i]=displ[rank][i];
-        if(i+1<num_procs) pr[i]=displ[rank][i+1]-1;
-        else pr[i]=total_cnt-1;
+        pr[i]=(i!=num_procs-1?displ[rank][i+1]-1:total_cnt-1);
     }
     // Merge K segments
     priority_queue<node> q;
@@ -255,9 +253,11 @@ int main(int argc,char *argv[])
 
     displ_per_process[0]=0;
     for(int i=1;i<num_procs;++i) displ_per_process[i]=displ_per_process[i-1]+cnt_per_process[i-1];
-    vector<int>().swap(recv_seg);
-    if(rank==0) ans.reserve(n);
-    MPI_Gatherv(&send[0],send.size(),MPI_INT,&ans[0],&cnt_per_process[0],&displ_per_process[0],MPI_INT,0,MPI_COMM_WORLD);
+
+    delete[] recv_seg;
+    int *ans; ans= (rank==0?new int[n]:nullptr);
+    MPI_Gatherv(&send[0],total_cnt,MPI_INT,&ans[0],&cnt_per_process[0],&displ_per_process[0],MPI_INT,0,MPI_COMM_WORLD);
+
     ed8=MPI_Wtime();
     if(rank==0){
         ced=MPI_Wtime();
@@ -274,6 +274,7 @@ int main(int argc,char *argv[])
         cout<<"Parallelize with -n "<<num_procs<<": "<<ced-cst<<"\n";
 
         cou<<"with -n "<<num_procs<<"\n";
+        cou<<"File: "<<file_name<<"\n";
         cou<<"Read time: "<<fed-cst<<"s\n";
         cou<<"Sort time: "<<ed2-ed<<"s\n";
         cou<<"Gather seg: "<<ed6-ed5<<"s\n";
