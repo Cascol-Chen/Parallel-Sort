@@ -7,6 +7,9 @@ This is parallel merge_sort, the algorithm is as follow
     5. split the array in each process into k segments according to split points and send them to the right process, each process will then have k segments
     6. each process run k-merge algorithm to merge k segments
     7. gather the final answer
+    
+author: Cascol-SCUT
+link: https://github.com/Cascol-SCUT/Parallel-Sort
 */
 
 #if 0
