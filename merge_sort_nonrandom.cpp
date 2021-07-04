@@ -137,8 +137,8 @@ int main(int argc, char *argv[])
     MPI_File_get_size(fh, &ofs);
     const int n = ofs / sizeof(int);
     const int number_per_process = n / num_procs;
-    int sz = (rank == num_procs - 1 ? (n - number_per_process * (num_procs - 1)) : number_per_process);
-    int *a = new int[sz];
+    const int sz = (rank == num_procs - 1 ? (n - number_per_process * (num_procs - 1)) : number_per_process);
+    int * const a = new int[sz];
     MPI_File_read_at(fh, rank * number_per_process * sizeof(int), &a[0], sz, MPI_INT, &status);
 
     MPI_File_close(&fh);
@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            auto it2 = upper_bound(a, a + sz, p[i]);
+            const auto it2 = upper_bound(a, a + sz, p[i]);
             int per_num;
             const int total_number = it2 - a - pre_r;
             if (pre_r + total_number / (value_cnt + 1) < it - a)
@@ -228,7 +228,7 @@ int main(int argc, char *argv[])
             displ[i][j] = displ[i][j - 1] + vec_info[i][j - 1];
         }
     }
-    int *recv_seg = new int[total_cnt];
+    int * const recv_seg = new int[total_cnt];
     MPI_Request req[num_procs];
     int l = 0;
     for (int i = 0; i < num_procs; ++i)
@@ -240,7 +240,7 @@ int main(int argc, char *argv[])
 
     // memory management
     delete[] a;
-    int *send = new int[total_cnt];
+    int * const send = new int[total_cnt];
     ed6 = MPI_Wtime();
 
     int pl[num_procs], pr[num_procs];
@@ -262,9 +262,9 @@ int main(int argc, char *argv[])
     while (!q.empty())
     {
         const auto tmp = q.top();
+        const int id = tmp.id;
         q.pop();
         send[idx++] = tmp.v;
-        const int id = tmp.id;
         while (pl[id] <= pr[id] && (q.empty() || q.top().v >= recv_seg[pl[id]]))
             send[idx++] = recv_seg[pl[id]++];
         if (pl[id] <= pr[id])
@@ -285,8 +285,7 @@ int main(int argc, char *argv[])
         displ_per_process[i] = displ_per_process[i - 1] + cnt_per_process[i - 1];
 
     delete[] recv_seg;
-    int *ans;
-    ans = (rank == 0 ? new int[n] : nullptr);
+    int * const ans = (!rank ? new int[n] : nullptr);
     MPI_Gatherv(&send[0], total_cnt, MPI_INT, &ans[0], &cnt_per_process[0], &displ_per_process[0], MPI_INT, 0, MPI_COMM_WORLD);
 
     ed8 = MPI_Wtime();
