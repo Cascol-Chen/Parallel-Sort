@@ -150,7 +150,6 @@ int main(int argc, char *argv[])
     recv.resize(num_procs * (num_procs - 1));
     int cnt_per_process[num_procs], displ_per_process[num_procs], vec_info[num_procs][num_procs], displ[num_procs][num_procs];
     memset(cnt_per_process, 0, sizeof(cnt_per_process));
-    memset(displ, 0, sizeof(displ));
     // sort the block assigned
     ed = MPI_Wtime();
     // radix_sort(a,rank==0);
@@ -221,11 +220,12 @@ int main(int argc, char *argv[])
 
     // show how many items are assigned to this process
     // cout<<rank<<": "<<total_cnt<<"\n";
-    for (int i = 1; i < num_procs; ++i)
+    for (int i = 0; i < num_procs; ++i)
     {
-        for (int j = 0; j < num_procs; ++j)
+        displ[i][0] = 0;
+        for (int j = 1; j < num_procs; ++j)
         {
-            displ[j][i] = displ[j][i - 1] + vec_info[j][i - 1];
+            displ[i][j] = displ[i][j - 1] + vec_info[i][j - 1];
         }
     }
     int *recv_seg = new int[total_cnt];
